@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="../lib/socket.io.dev.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+    <style type="text/css">
+        ol,li {
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div v-if="isLogin==false">
+            <label>Room:</label><input type="text" v-model="groupName" readonly=""><br>
+            <label>Username:</label><input type="text" v-model="userName"><br>
+            <button @click="login">login</button>
+        </div>
+        <div v-if="isLogin">
+            <h2>User in chatroom</h2>
+            <ul>
+                <ol v-for="user in users">
+                    {{user.name}}
+                </ol>
+            </ul>
+            <hr>
+            <h2>Message</h2>
+            <ul>
+                <ol v-for="message in messages">
+                    {{message.from}}: {{message.msg}}
+                </ol>
+            </ul>
+            <label>To:</label><input type="text" v-model="to"><br>
+            <label>Say:</label><input type="text" v-model="msg">
+            <button @click="send">send</button>
+        </div>
+    </div>
+</body>
+<script>
+    var socket = io('ws://localhost:3000');
+
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            isLogin: false,
+            groupId: '',
+            userName: '',
+            groupName: 'Sample Group',
+            messages: [],
+            users: [],
+            from: '',
+            to: '',
+            msg: '',
+            trips: '',
+            users:[],
+            userInfor:{
+                test:true
+            }
+        },
+        mounted() {
+            socket.on('login-reply', (data) => {
+                this.isLogin = data.is_success;
+            })
+            socket.on('login-notify', (data) => {
+                this.users = data.users;
+            })
+            socket.on('logout', function (userName) {
+                console.log(data)
+            })
+            socket.on('p2p-msg-notify', (data) => {
+                console.log(data)
+                if(data.is_success){
+                    this.messages.push({'from': data.from, 'msg': data.msg})
+                }
+            })
+            socket.on('broadcast-msg-notify', (data) => {
+                console.log(data)
+                if(data.is_success){
+                    this.messages.push({'from': data.from, 'msg': data.msg})
+                }
+            })
+        },
+        methods: {
+            login() {
+                if(!this.userName || !this.groupName){
+                    console.log('请输入必填字段')
+                    return false;
+                }
+
+                socket.emit('login', { user_name: this.userName, group_name: this.groupName })
+            },
+            send() {
+                socket.emit('send-msg', { from: this.userName, to: this.to, 'msg': this.msg })
+                this.msg = '';
+            }
+        }
+    })
+</script>
+
+</html>
